@@ -16,22 +16,21 @@
 #include "mqtt.h"
 #include "gpio.h"
 
-xSemaphoreHandle conexaoWifiSemaphore;
-xSemaphoreHandle conexaoMQTTSemaphore;
+xSemaphoreHandle wifi_semaphore;
+xSemaphoreHandle mqtt_semaphore;
 
-void conectadoWifi(void * params)
+void mqtt_conection(void * params)
 {
   while(true)
   {
-    if(xSemaphoreTake(conexaoWifiSemaphore, portMAX_DELAY))
+    if(xSemaphoreTake(wifi_semaphore, portMAX_DELAY))
     {
-      // Processamento Internet
       mqtt_start();
     }
   }
 }
 
-void trataComunicacaoComServidor(void * params)
+void sensor_report(void * params)
 {
   struct dht11_reading read;
   char temperature[25];
@@ -39,7 +38,7 @@ void trataComunicacaoComServidor(void * params)
   char temp_topic[50];
   char hum_topic[50];
 
-  if(xSemaphoreTake(conexaoMQTTSemaphore, portMAX_DELAY))
+  if(xSemaphoreTake(mqtt_semaphore, portMAX_DELAY))
   {
     DHT11_init(GPIO_NUM_4);
     while(1) {
@@ -52,8 +51,8 @@ void trataComunicacaoComServidor(void * params)
         sprintf(temperature, "{\"temperature\": %d}", read.temperature);
         sprintf(humidity, "{\"humidity\": %d}", read.humidity);
 
-        mqtt_envia_mensagem(temp_topic, temperature);
-        mqtt_envia_mensagem(hum_topic, humidity);
+        mqtt_send_message(temp_topic, temperature);
+        mqtt_send_message(hum_topic, humidity);
         vTaskDelay(2000 / portTICK_PERIOD_MS);
     }
   }
@@ -61,7 +60,6 @@ void trataComunicacaoComServidor(void * params)
 
 void app_main(void)
 {
-    // Inicializa o NVS
     esp_err_t ret = nvs_flash_init();
     if (ret == ESP_ERR_NVS_NO_FREE_PAGES || ret == ESP_ERR_NVS_NEW_VERSION_FOUND) {
       ESP_ERROR_CHECK(nvs_flash_erase());
@@ -69,11 +67,11 @@ void app_main(void)
     }
     ESP_ERROR_CHECK(ret);
     
-    conexaoWifiSemaphore = xSemaphoreCreateBinary();
-    conexaoMQTTSemaphore = xSemaphoreCreateBinary();
+    wifi_semaphore = xSemaphoreCreateBinary();
+    mqtt_semaphore = xSemaphoreCreateBinary();
     set_up_gpio();
     wifi_start();
 
-    xTaskCreate(&conectadoWifi,  "Conexão ao MQTT", 4096, NULL, 1, NULL);
-    xTaskCreate(&trataComunicacaoComServidor, "Comunicação com Broker", 4096, NULL, 1, NULL);
+    xTaskCreate(&mqtt_conection,  "Conexão ao MQTT", 4096, NULL, 1, NULL);
+    xTaskCreate(&sensor_report, "Relatório dos sensores ao Broker", 4096, NULL, 1, NULL);
 }

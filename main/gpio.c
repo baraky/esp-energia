@@ -7,7 +7,6 @@
 #include "esp_log.h"
 #include "gpio.h"
 #include "mqtt.h"
-//#include <string.h>
 
 xQueueHandle input_queue;
 
@@ -31,17 +30,13 @@ void input_handler(void *params)
       if(state == 1)
       {
         gpio_isr_handler_remove(pin);
-        while(gpio_get_level(pin) == state)
-        {
-          vTaskDelay(50 / portTICK_PERIOD_MS);
-        }
 
         printf("apertei\n");
         sprintf(topic, "fse2020/180033646/%s/estado", room);
 
-        mqtt_envia_mensagem(topic, "{\"input\": 1}");
+        mqtt_send_message(topic, "{\"input\": 1}");
 
-        // Habilitar novamente a interrupção
+        // Habilita novamente a interrupção
         vTaskDelay(50 / portTICK_PERIOD_MS);
         gpio_isr_handler_add(pin, gpio_isr_handler, NULL);
       }
@@ -66,8 +61,6 @@ void set_up_gpio() {
 
     gpio_install_isr_service(0);
     gpio_isr_handler_add(BUTTON, gpio_isr_handler, (void *) BUTTON);
-
-
 }
 
 void turn_on_led() {

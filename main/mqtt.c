@@ -26,7 +26,7 @@
 
 #define TAG "MQTT"
 
-extern xSemaphoreHandle conexaoMQTTSemaphore;
+extern xSemaphoreHandle mqtt_semaphore;
 esp_mqtt_client_handle_t client;
 int state = 0;
 
@@ -104,7 +104,7 @@ static esp_err_t mqtt_event_handler_cb(esp_mqtt_event_handle_t event)
             if (check_nvs() == -1) {
                 esp_mqtt_client_publish(client, init_topic, "{\"init\": 1}", 0, 1, 0);
             } else {
-                xSemaphoreGive(conexaoMQTTSemaphore);
+                xSemaphoreGive(mqtt_semaphore);
             }
 
             esp_mqtt_client_subscribe(client, init_topic, 0);
@@ -132,7 +132,7 @@ static esp_err_t mqtt_event_handler_cb(esp_mqtt_event_handle_t event)
                 memcpy(room, content->valuestring, length);
                 room[length] = '\0';
                 write_nvs();
-                xSemaphoreGive(conexaoMQTTSemaphore);
+                xSemaphoreGive(mqtt_semaphore);
             } else {
                 content = cJSON_GetObjectItemCaseSensitive(json, "input");
                 if (content->valueint == 1)
@@ -142,7 +142,6 @@ static esp_err_t mqtt_event_handler_cb(esp_mqtt_event_handle_t event)
             }
 
             cJSON_Delete(json);
-
             break;
         case MQTT_EVENT_ERROR:
             ESP_LOGI(TAG, "MQTT_EVENT_ERROR");
@@ -169,8 +168,8 @@ void mqtt_start()
     esp_mqtt_client_start(client);
 }
 
-void mqtt_envia_mensagem(char * topico, char * mensagem)
+void mqtt_send_message(char * topic, char * message)
 {
-    int message_id = esp_mqtt_client_publish(client, topico, mensagem, 0, 1, 0);
-    ESP_LOGI(TAG, "Mesnagem enviada, ID: %d", message_id);
+    int message_id = esp_mqtt_client_publish(client, topic, message, 0, 1, 0);
+    ESP_LOGI(TAG, "Mensagem enviada, ID: %d", message_id);
 }
