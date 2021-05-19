@@ -134,11 +134,15 @@ static esp_err_t mqtt_event_handler_cb(esp_mqtt_event_handle_t event)
                 write_nvs();
                 xSemaphoreGive(mqtt_semaphore);
             } else {
-                content = cJSON_GetObjectItemCaseSensitive(json, "input");
-                if (content->valueint == 1)
-                    turn_on_led();
-                else
+                content = cJSON_GetObjectItemCaseSensitive(json, "output");
+                if (content->valueint == 0)
                     turn_off_led();
+                else if (content->valueint == 1)
+                    turn_on_led();
+                else {
+                    nvs_flash_erase();
+                    esp_restart();
+                }
             }
 
             cJSON_Delete(json);
