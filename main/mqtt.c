@@ -26,7 +26,6 @@
 
 #define TAG "MQTT"
 
-extern xSemaphoreHandle mqtt_semaphore;
 esp_mqtt_client_handle_t client;
 int state = 0;
 
@@ -103,9 +102,7 @@ static esp_err_t mqtt_event_handler_cb(esp_mqtt_event_handle_t event)
 
             if (check_nvs() == -1) {
                 esp_mqtt_client_publish(client, init_topic, "{\"init\": 1}", 0, 1, 0);
-            } else {
-                xSemaphoreGive(mqtt_semaphore);
-            }
+            } 
 
             esp_mqtt_client_subscribe(client, init_topic, 0);
             break;
@@ -132,7 +129,6 @@ static esp_err_t mqtt_event_handler_cb(esp_mqtt_event_handle_t event)
                 memcpy(room, content->valuestring, length);
                 room[length] = '\0';
                 write_nvs();
-                xSemaphoreGive(mqtt_semaphore);
             } else {
                 content = cJSON_GetObjectItemCaseSensitive(json, "output");
                 if (content->valueint == 0)
